@@ -42,18 +42,18 @@ RENTAL_CREDIT = 10
 MOVE_CAR_COST = 2
 
 # all possible actions
-actions = np.arange(-MAX_MOVE_OF_CARS, MAX_MOVE_OF_CARS + 1)
+actions = np.arange(-MAX_MOVE_OF_CARS, MAX_MOVE_OF_CARS + 1) #从-5到5
 
 # An up bound for poisson distribution
 # If n is greater than this value, then the probability of getting n is truncated to 0
-POISSON_UPPER_BOUND = 11
+POISSON_UPPER_BOUND = 11 #如果n大于该值，则获得n的概率被截断为0
 
 # Probability for poisson distribution
 # @lam: lambda should be less than 10 for this function
-poisson_cache = dict()
+poisson_cache = dict()  #缓存
 
 
-def poisson_probability(n, lam):
+def poisson_probability(n, lam):   #n是租车数量（随机变量），lam是期望值
     global poisson_cache
     key = n * 10 + lam
     if key not in poisson_cache:
@@ -89,11 +89,11 @@ def expected_return(state, action, state_value, constant_returned_cars):
             prob = poisson_probability(rental_request_first_loc, RENTAL_REQUEST_FIRST_LOC) * \
                 poisson_probability(rental_request_second_loc, RENTAL_REQUEST_SECOND_LOC)
 
-            num_of_cars_first_loc = NUM_OF_CARS_FIRST_LOC
+            num_of_cars_first_loc = NUM_OF_CARS_FIRST_LOC #异步
             num_of_cars_second_loc = NUM_OF_CARS_SECOND_LOC
 
             # valid rental requests should be less than actual # of cars
-            valid_rental_first_loc = min(num_of_cars_first_loc, rental_request_first_loc)
+            valid_rental_first_loc = min(num_of_cars_first_loc, rental_request_first_loc)   #有效租车
             valid_rental_second_loc = min(num_of_cars_second_loc, rental_request_second_loc)
 
             # get credits for renting
@@ -122,43 +122,61 @@ def expected_return(state, action, state_value, constant_returned_cars):
 
 
 def figure_4_2(constant_returned_cars=True):
-    value = np.zeros((MAX_CARS + 1, MAX_CARS + 1))
-    policy = np.zeros(value.shape, dtype=np.int)
+    # 定义函数figure_4_2，用于绘制状态值图和策略图
+    value = np.zeros((MAX_CARS + 1, MAX_CARS + 1)) # 创建一个状态值矩阵，初始值为0
+    policy = np.zeros(value.shape, dtype=np.int64) # 创建一个策略矩阵，初始策略为0（不移动车辆）
 
     iterations = 0
     _, axes = plt.subplots(2, 3, figsize=(40, 20))
     plt.subplots_adjust(wspace=0.1, hspace=0.2)
-    axes = axes.flatten()
+    axes = axes.flatten() # 将绘图区域转换为一维数组，方便后续索引
+
     while True:
+        # 绘制当前策略的热图
+        # 使用seaborn的heatmap函数创建一个热图，用于显示策略矩阵
+        # np.flipud(policy) 将策略矩阵上下翻转，因为热图是从上到下绘制的
         fig = sns.heatmap(np.flipud(policy), cmap="YlGnBu", ax=axes[iterations])
+
+        # 设置热图的y轴标签为第一个位置的车辆数
         fig.set_ylabel('# cars at first location', fontsize=30)
+
+        # 生成一个从0到MAX_CARS的数字列表，然后将这个列表反转
+        # 这是因为热图是上下翻转的，所以y轴的刻度也需要反转
         fig.set_yticks(list(reversed(range(MAX_CARS + 1))))
+
+        # 设置热图的x轴标签为第二个位置的车辆数
         fig.set_xlabel('# cars at second location', fontsize=30)
+
+        # 设置热图的标题为当前的策略迭代次数
         fig.set_title('policy {}'.format(iterations), fontsize=30)
 
-        # policy evaluation (in-place)
+        # 策略评估：计算给定策略下的状态值
         while True:
             old_value = value.copy()
             for i in range(MAX_CARS + 1):
                 for j in range(MAX_CARS + 1):
+                    # 计算每个状态下执行当前策略的期望回报
                     new_state_value = expected_return([i, j], policy[i, j], value, constant_returned_cars)
                     value[i, j] = new_state_value
             max_value_change = abs(old_value - value).max()
             print('max value change {}'.format(max_value_change))
             if max_value_change < 1e-4:
-                break
+                break  # 当状态值变化很小时，结束策略评估
 
-        # policy improvement
+        # 策略改进：更新策略以最大化状态值
         policy_stable = True
         for i in range(MAX_CARS + 1):
             for j in range(MAX_CARS + 1):
                 old_action = policy[i, j]
                 action_returns = []
                 for action in actions:
+                    # 只考虑有效动作
                     if (0 <= action <= i) or (-j <= action <= 0):
+                        # 计算每个动作的期望回报
                         action_returns.append(expected_return([i, j], action, value, constant_returned_cars))
                     else:
                         action_returns.append(-np.inf)
+                # 选择使期望回报最大化的动作
                 new_action = actions[np.argmax(action_returns)]
                 policy[i, j] = new_action
                 if policy_stable and old_action != new_action:
@@ -166,6 +184,7 @@ def figure_4_2(constant_returned_cars=True):
         print('policy stable {}'.format(policy_stable))
 
         if policy_stable:
+            # 如果策略稳定，则绘制最优状态值的热图并结束循环
             fig = sns.heatmap(np.flipud(value), cmap="YlGnBu", ax=axes[-1])
             fig.set_ylabel('# cars at first location', fontsize=30)
             fig.set_yticks(list(reversed(range(MAX_CARS + 1))))
@@ -177,6 +196,7 @@ def figure_4_2(constant_returned_cars=True):
 
     plt.savefig('../images/figure_4_2.png')
     plt.close()
+
 
 
 if __name__ == '__main__':
