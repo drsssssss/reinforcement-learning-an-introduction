@@ -20,27 +20,27 @@ ACTION_STAND = 1  #  "strike" in the book
 ACTIONS = [ACTION_HIT, ACTION_STAND]
 
 # policy for player
-POLICY_PLAYER = np.zeros(22, dtype=np.int)
+POLICY_PLAYER = np.zeros(22, dtype=np.int64)
 for i in range(12, 20):
-    POLICY_PLAYER[i] = ACTION_HIT
-POLICY_PLAYER[20] = ACTION_STAND
-POLICY_PLAYER[21] = ACTION_STAND
+    POLICY_PLAYER[i] = ACTION_HIT  # 12-19点要牌
+POLICY_PLAYER[20] = ACTION_STAND # 20点不再要牌
+POLICY_PLAYER[21] = ACTION_STAND # 21点不再要牌
 
 # function form of target policy of player
 def target_policy_player(usable_ace_player, player_sum, dealer_card):
-    return POLICY_PLAYER[player_sum]
+    return POLICY_PLAYER[player_sum] #
 
 # function form of behavior policy of player
 def behavior_policy_player(usable_ace_player, player_sum, dealer_card):
-    if np.random.binomial(1, 0.5) == 1:
+    if np.random.binomial(1, 0.5) == 1:  #np.random.binomial(1, 0.5)函数调用从二项分布生成一个随机数。二项分布是n次独立实验中成功次数的离散概率分布。这里，n是1（表示进行一次实验），p是0.5（单次试验成功的概率是50%）
         return ACTION_STAND
-    return ACTION_HIT
+    return ACTION_HIT #随机选择要牌或者不要牌
 
 # policy for dealer
 POLICY_DEALER = np.zeros(22)
-for i in range(12, 17):
+for i in range(12, 17): #12-16点要牌
     POLICY_DEALER[i] = ACTION_HIT
-for i in range(17, 22):
+for i in range(17, 22): #17-21点不再要牌
     POLICY_DEALER[i] = ACTION_STAND
 
 # get a new card
@@ -51,11 +51,11 @@ def get_card():
 
 # get the value of a card (11 for ace).
 def card_value(card_id):
-    return 11 if card_id == 1 else card_id
+    return 11 if card_id == 1 else card_id #如果是A，返回11，否则返回牌面值
 
 # play a game
-# @policy_player: specify policy for player
-# @initial_state: [whether player has a usable Ace, sum of player's cards, one card of dealer]
+# @policy_player: specify policy for player  #指定玩家策略
+# @initial_state: [whether player has a usable Ace, sum of player's cards, one card of dealer] #
 # @initial_action: the initial action
 def play(policy_player, initial_state=None, initial_action=None):
     # player status
@@ -74,21 +74,25 @@ def play(policy_player, initial_state=None, initial_action=None):
     dealer_card2 = 0
     usable_ace_dealer = False
 
+    # 如果初始状态为空，则生成一个随机的初始状态
     if initial_state is None:
         # generate a random initial state
 
         while player_sum < 12:
             # if sum of player is less than 12, always hit
+            # 如果玩家的总和小于12，总是要拿牌
             card = get_card()
             player_sum += card_value(card)
 
             # If the player's sum is larger than 21, he may hold one or two aces.
+            # 如果玩家的总和大于21，则可能拿一个或两个ace
             if player_sum > 21:
-                assert player_sum == 22
+                assert player_sum == 22 #
                 # last card must be ace
+                # 最后一张牌必须是ace
                 player_sum -= 10
             else:
-                usable_ace_player |= (1 == card)
+                usable_ace_player |= (1 == card) #如果拿到的牌是A，则usable_ace_player为True
 
         # initialize cards of dealer, suppose dealer will show the first card he gets
         dealer_card1 = get_card()
@@ -104,7 +108,7 @@ def play(policy_player, initial_state=None, initial_action=None):
 
     # initialize dealer's sum
     dealer_sum = card_value(dealer_card1) + card_value(dealer_card2)
-    usable_ace_dealer = 1 in (dealer_card1, dealer_card2)
+    usable_ace_dealer = 1 in (dealer_card1, dealer_card2)  #
     # if the dealer's sum is larger than 21, he must hold two aces.
     if dealer_sum > 21:
         assert dealer_sum == 22
@@ -216,7 +220,7 @@ def monte_carlo_es(episodes):
         return np.random.choice([action_ for action_, value_ in enumerate(values_) if value_ == np.max(values_)])
 
     # play for several episodes
-    for episode in tqdm(range(episodes)):
+    for episode in tqdm(range(episodes)): #
         # for each episode, use a randomly initialized state and action
         initial_state = [bool(np.random.choice([0, 1])),
                        np.random.choice(range(12, 22)),
